@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>潛盾工程中日台互動學習學院｜微軟真人發音・漢字音訓讀・記憶複習</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-icon">🚇</span>
+        <div>
+          <h1>潛盾工程中日台互動學習學院</h1>
+          <p class="brand-sub">CF763 潛盾機・泥水處理・掘進・環片・立坑專業詞庫（微軟真人發音）</p>
+        </div>
+      </div>
+
+      <div class="controls-bar">
+        <!-- 假名顯示開關 -->
+        <label class="furigana-switch" title="快捷鍵 F：開啟可看漢字上方假名，關閉可練習純漢字閱讀">
+          <input type="checkbox" id="furiganaToggle" checked />
+          <span class="switch-slider"></span>
+          <span class="switch-label">顯示假名 <small>(ふりがな)</small></span>
+        </label>
+
+        <!-- 語速與微軟發音標示 -->
+        <div class="voice-control" title="採用 Microsoft Edge Neural 日語真人發音 (ja-JP-NanamiNeural)">
+          <span class="voice-badge">🎙️ 微軟真人發音</span>
+          <select id="speedSelect" aria-label="朗讀語速">
+            <option value="0.75">0.75x 慢速</option>
+            <option value="1" selected>1.0x 標準</option>
+            <option value="1.2">1.2x 稍快</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <nav class="mode-tabs" role="tablist">
+      <button class="mode-tab active" data-mode="browse">📚 分門別類詞庫</button>
+      <button class="mode-tab" data-mode="flashcards">🃏 記憶閃卡</button>
+      <button class="mode-tab" data-mode="quiz">🎯 聽力與測驗</button>
+      <button class="mode-tab" data-mode="review">🔁 複習與錯題本 <span id="reviewBadge" class="pill-count">0</span></button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- 全域統計條 -->
+    <section class="stats-strip" id="statsStrip">
+      <div class="stat-item"><strong id="statTotal">-</strong><span>收錄術語</span></div>
+      <div class="stat-item"><strong id="statMastered">0</strong><span>已記住</span></div>
+      <div class="stat-item"><strong id="statLearning">0</strong><span>需複習</span></div>
+      <div class="stat-item"><strong id="statStarred">0</strong><span>星號收藏</span></div>
+    </section>
+
+    <!-- 模式一：分門別類詞庫 -->
+    <section id="mode-browse" class="mode-panel active">
+      <div class="filter-panel">
+        <div class="search-row">
+          <input type="search" id="searchInput" placeholder="搜尋日文漢字、假名、台灣譯名、大陸用語、English 或說明..." />
+          <select id="patternFilter" aria-label="依音訓讀篩選">
+            <option value="all">全部讀音類型</option>
+            <option value="音讀">純音讀</option>
+            <option value="訓讀">純訓讀</option>
+            <option value="重箱讀（音+訓）">重箱讀（音+訓）</option>
+            <option value="湯桶讀（訓+音）">湯桶讀（訓+音）</option>
+            <option value="音訓混讀">音訓混讀</option>
+            <option value="特殊/熟字訓">特殊 / 熟字訓</option>
+            <option value="kana">外來語 / 假名</option>
+          </select>
+          <label class="chip-check">
+            <input type="checkbox" id="highFreqOnly" />
+            <span>⭐ 只看高頻必背</span>
+          </label>
+          <label class="chip-check">
+            <input type="checkbox" id="starredOnly" />
+            <span>🔖 只看收藏</span>
+          </label>
+        </div>
+
+        <div class="category-pills" id="categoryPills"></div>
+      </div>
+
+      <div class="browse-toolbar">
+        <span id="resultCount">載入中...</span>
+        <div class="toolbar-actions">
+          <button id="playAllBtn" class="btn btn-secondary">🔊 本頁連續朗讀（跟讀）</button>
+          <button id="stopPlayAllBtn" class="btn btn-ghost hidden">⏹ 停止連播</button>
+        </div>
+      </div>
+
+      <div class="terms-grid" id="termsGrid"></div>
+      <div class="pagination" id="pagination"></div>
+    </section>
+
+    <!-- 模式二：記憶閃卡 -->
+    <section id="mode-flashcards" class="mode-panel">
+      <div class="sub-controls">
+        <select id="fcCategory"></select>
+        <select id="fcFilter">
+          <option value="all">全部詞條</option>
+          <option value="high">⭐ 高頻必背</option>
+          <option value="review">🔁 需複習 / 未記住</option>
+          <option value="starred">🔖 星號收藏</option>
+        </select>
+        <label class="chip-check">
+          <input type="checkbox" id="fcAutoAudio" checked />
+          <span>切卡自動朗讀</span>
+        </label>
+        <span class="fc-counter" id="fcCounter">0 / 0</span>
+      </div>
+
+      <div class="flashcard-stage">
+        <div class="flashcard" id="flashcard">
+          <div class="flashcard-face flashcard-front">
+            <div class="fc-meta">
+              <span class="badge" id="fcCatBadge">分類</span>
+              <span class="badge" id="fcPatternBadge">音讀</span>
+            </div>
+            <div class="fc-jp" id="fcJp">-</div>
+            <div class="fc-actions-row">
+              <button class="btn btn-audio" id="fcSpeakBtn" type="button">🔊 微軟真人朗讀 (R)</button>
+              <button class="btn btn-ghost" id="fcFlipBtn" type="button">翻面看解釋 (Space)</button>
+            </div>
+            <p class="fc-hint">提示：可用右上角「顯示假名」開關切換是否顯示漢字上方假名</p>
+          </div>
+
+          <div class="flashcard-face flashcard-back hidden">
+            <div class="fc-meta">
+              <span class="badge" id="fcCatBadgeBack">分類</span>
+              <button class="btn btn-audio btn-sm" id="fcSpeakBtnBack" type="button">🔊 再聽一次</button>
+            </div>
+            <div class="fc-jp-small" id="fcJpBack">-</div>
+            <div class="fc-zh" id="fcZh">-</div>
+            <div class="fc-sub-langs" id="fcSubLangs"></div>
+            <div class="fc-breakdown" id="fcBreakdown"></div>
+            <div class="fc-note" id="fcNote"></div>
+            <div class="fc-rate-row">
+              <button class="btn btn-danger" data-rate="again">😵 不熟 (1)</button>
+              <button class="btn btn-warn" data-rate="hard">🤔 再練 (2)</button>
+              <button class="btn btn-success" data-rate="good">✅ 記住了 (3)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fc-nav-row">
+        <button class="btn btn-ghost" id="fcPrevBtn">⬅ 上一張</button>
+        <button class="btn btn-ghost" id="fcShuffleBtn">🔀 隨機洗牌</button>
+        <button class="btn btn-ghost" id="fcNextBtn">下一張 ➡</button>
+      </div>
+    </section>
+
+    <!-- 模式三：聽力與測驗 -->
+    <section id="mode-quiz" class="mode-panel">
+      <div class="sub-controls">
+        <select id="quizCategory"></select>
+        <select id="quizType">
+          <option value="listening">🎧 聽微軟發音選中文</option>
+          <option value="kanji2zh">📖 看日文漢字選中文</option>
+          <option value="zh2jp">🔄 看台灣中文選日文</option>
+        </select>
+        <button class="btn btn-primary" id="startQuizBtn">開始 10 題測驗</button>
+      </div>
+
+      <div class="quiz-box" id="quizBox">
+        <div class="quiz-empty">選擇分類與測驗模式後，點擊「開始 10 題測驗」即可練習！答錯會自動收入「複習與錯題本」。</div>
+      </div>
+    </section>
+
+    <!-- 模式四：複習與錯題本 -->
+    <section id="mode-review" class="mode-panel">
+      <div class="review-header">
+        <div>
+          <h2>🔁 個人複習清單與錯題本</h2>
+          <p>系統會自動記錄你在閃卡標記「不熟 / 再練」、測驗答錯、以及手動收藏（🔖）的詞條。</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" id="playReviewBtn">🔊 連續朗讀複習清單</button>
+          <button class="btn btn-ghost" id="clearWrongBtn">清除錯題紀錄</button>
+        </div>
+      </div>
+      <div class="category-progress" id="categoryProgress"></div>
+      <div class="terms-grid" id="reviewGrid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>資料來源：CF763 潛盾機專案《潛盾機相關》工程術語庫（1,285 條去重整理）｜語音：Microsoft Edge Neural <code>ja-JP-NanamiNeural</code></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
